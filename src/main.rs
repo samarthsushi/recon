@@ -112,12 +112,12 @@ fn main() -> io::Result<()> {
 
     let mut scores = Vec::new();
     let idf = compute_idf(&documents, &query);
-    println!("idf of {query}: {idf}\n");
+    println!("idf of {query}: {:.6}\n", idf);
 
     for (doc_name, term_freq_map) in &documents {
         let tf = compute_tf(term_freq_map, &query); 
         let tf_idf = compute_tf_idf(tf, idf); 
-        println!("{doc_name}:\ntf:{tf}\ttf*idf: {tf_idf}");
+        println!("{doc_name}:\ntf:{:.6}\ttf*idf: {:.6}", tf ,tf_idf);
         if tf_idf > 0.0 {
             scores.push((doc_name.clone(), tf_idf));
         }
@@ -127,7 +127,7 @@ fn main() -> io::Result<()> {
 
     println!("reconned:");
     for (doc_name, score) in scores {
-        println!("{}: {:.4}", doc_name, score);
+        println!("{}: {:.6}", doc_name, score);
     }
 
     Ok(())
