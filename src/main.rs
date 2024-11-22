@@ -32,15 +32,17 @@ impl<'a> Lexer<'a> {
     fn next_token(&mut self) -> Option<String> {
         self.skip_whitespace();
 
-        match self.chars.next()? {
-            c if c.is_alphanumeric() || c == '\'' => {
+        while let Some(&c) = self.chars.peek() {
+            if c.is_alphanumeric() || c == '\'' {
                 let mut word = String::new();
-                word.push(c); 
+                word.push(self.chars.next().unwrap()); 
                 word.push_str(&self.extract_word());
-                Some(word)
+                return Some(word);
+            } else {
+                self.chars.next();
             }
-            _ => None, 
         }
+        None
     }
 }
 
@@ -105,6 +107,8 @@ fn main() -> io::Result<()> {
             );
         }
     }
+    
+    // println!("{:#?}", documents); // uncomment to debug what the lexer outputs
 
     let mut scores = Vec::new();
     let idf = compute_idf(&documents, &query);
