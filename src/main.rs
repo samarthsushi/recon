@@ -1,87 +1,13 @@
 use std::{
-    collections::HashMap, fs, io::{self, Read}
+    collections::HashMap, fs, io::{self, Read}, process::exit
 };
+use recon::computations::{compute_tf, compute_idf, compute_tf_idf};
+use recon::lexer::Lexer;
 
 type TermFreqMap = HashMap<String, usize>; 
 type DocumentMap = HashMap<String, TermFreqMap>;
 
-struct Lexer<'a> {
-    chars: std::iter::Peekable<std::str::Chars<'a>>,
-}
-
-impl<'a> Lexer<'a> {
-    fn new(input: &'a str) -> Self {
-        Self {
-            chars: input.chars().peekable(),
-        }
-    }
-
-    fn skip_whitespace(&mut self) {
-        while self.chars.peek().map_or(false, |c| c.is_whitespace()) {
-            self.chars.next();
-        }
-    }
-
-    fn extract_word(&mut self) -> String {
-        self.chars
-            .by_ref()
-            .take_while(|c| c.is_alphanumeric() || *c == '\'')
-            .collect()
-    }
-
-    fn next_token(&mut self) -> Option<String> {
-        self.skip_whitespace();
-
-        while let Some(&c) = self.chars.peek() {
-            if c.is_alphanumeric() || c == '\'' {
-                let mut word = String::new();
-                word.push(self.chars.next().unwrap()); 
-                word.push_str(&self.extract_word());
-                return Some(word);
-            } else {
-                self.chars.next();
-            }
-        }
-        None
-    }
-}
-
-fn compute_tf(doc: &HashMap<String, usize>, query: &str) -> f64 {
-    let total_words: usize = doc.values().sum();
-    let query_count = *doc.get(query).unwrap_or(&0); 
-    query_count as f64 / total_words as f64 
-}
-
-fn compute_idf(documents: &HashMap<String, TermFreqMap>, query: &str) -> f64 {
-    let doc_count = documents.len() as f64;
-    let containing_docs = documents
-        .values()
-        .filter(|doc| doc.contains_key(query))
-        .count() as f64;
-
-    if containing_docs == 0.0 {
-        0.0 
-    } else {
-        (doc_count / containing_docs as f64).ln() 
-    }
-}
-
-#[inline]
-fn compute_tf_idf(tf: f64, idf: f64) -> f64 {
-    tf * idf
-}
-
-fn main() -> io::Result<()> {
-    let args: Vec<String> = std::env::args().collect();
-    if args.len() < 2 {
-        eprintln!("usage: {} <query>", args[0]);
-        return Ok(());
-    }
-
-    let query = args[1].to_lowercase();
-
-    let current_dir = r"data\blonde_plaintext";
-
+fn build_document_map_from_dir_plaintext(current_dir: &str) -> io::Result<DocumentMap> {
     let mut documents: DocumentMap = HashMap::new();
 
     for entry in fs::read_dir(current_dir)? {
@@ -107,14 +33,29 @@ fn main() -> io::Result<()> {
             );
         }
     }
-    
+    Ok(documents)
+}
+
+fn main() -> io::Result<()> {
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() < 2 {
+        eprintln!("usage: {} <query>", args[0]);
+        return Ok(());
+    }
+
+    let query = args[1].to_lowercase();
+    let current_dir = r"data\blonde_plaintext";
+    let inverted_index = build_document_map_from_dir_plaintext(current_dir).unwrap_or_else(|e|{
+        eprintln!("{e}");
+        exit(1);
+    });
     // println!("{:#?}", documents); // uncomment to debug what the lexer outputs
 
     let mut scores = Vec::new();
-    let idf = compute_idf(&documents, &query);
+    let idf = compute_idf(&inverted_index, &query);
     println!("idf of {query}: {:.6}\n", idf);
 
-    for (doc_name, term_freq_map) in &documents {
+    for (doc_name, term_freq_map) in &inverted_index {
         let tf = compute_tf(term_freq_map, &query); 
         let tf_idf = compute_tf_idf(tf, idf); 
         println!("{doc_name}:\ntf:{:.6}\ttf*idf: {:.6}", tf ,tf_idf);
