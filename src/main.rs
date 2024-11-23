@@ -9,15 +9,29 @@ use recon::arena::Arena;
 type TermFreqMap<'a> = HashMap<Cow<'a, str>, usize>;
 type DocumentMap<'a> = HashMap<String, TermFreqMap<'a>>;
 
+fn save_inverted_index(file_path: &str, inverted_index: &DocumentMap) -> io::Result<()> {
+    let serialized = serde_json::to_string(inverted_index)
+        .expect("failed to serialize the inverted index");
+    fs::write(file_path, serialized)?;
+    Ok(())
+}
+
+fn load_inverted_index(file_path: &str) -> io::Result<DocumentMap<'static>> {
+    let content = fs::read_to_string(file_path)?;
+    let deserialized: DocumentMap<'static> = serde_json::from_str(&content)
+        .expect("failed to deserialize the inverted index");
+    Ok(deserialized)
+}
+
 fn main() -> io::Result<()> {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
-        eprintln!("usage: {} <query>", args[0]);
+        eprintln!("usage: {} \"<query>\"", args[0]);
         return Ok(());
     }
 
     let mut arena = Arena::new();
-    let query = args[1].to_lowercase();
+    let query = args[1].to_lowercase().chars().filter(|c| c.is_alphanumeric() || *c == '\'').collect::<String>(); // suite of pre processing functions for now
     let current_dir = r"data\blonde_plaintext";
     let mut inverted_index: DocumentMap = HashMap::new();
 
@@ -50,7 +64,7 @@ fn main() -> io::Result<()> {
             );
         }
     }
-    // println!("{:#?}", documents); // uncomment to debug what the lexer outputs
+    // println!("{:#?}", inverted_index); // uncomment to debug what the lexer outputs
 
     let mut scores = Vec::new();
     let idf = compute_idf(&inverted_index, &query);
@@ -59,7 +73,7 @@ fn main() -> io::Result<()> {
     for (doc_name, term_freq_map) in &inverted_index {
         let tf = compute_tf(term_freq_map, &query); 
         let tf_idf = compute_tf_idf(tf, idf); 
-        println!("{doc_name}:\ntf:{:.6}\ttf*idf: {:.6}", tf ,tf_idf);
+        // println!("{doc_name}:\ntf:{:.6}\ttf*idf: {:.6}", tf ,tf_idf);
         if tf_idf > 0.0 {
             scores.push((doc_name.clone(), tf_idf));
         }
@@ -71,6 +85,8 @@ fn main() -> io::Result<()> {
     for (doc_name, score) in scores {
         println!("{}: {:.6}", doc_name, score);
     }
+
+    save_inverted_index("inverted_index.json", &inverted_index)?;
 
     Ok(())
 }

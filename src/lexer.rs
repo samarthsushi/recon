@@ -31,13 +31,12 @@ impl<'a> Lexer<'a> {
         let mut requires_cleanup = false;
 
         while let Some(c) = self.peek_char() {
-            if c.is_alphanumeric() || c == '\'' {
+            if c.is_whitespace() { break };
+            if c.is_alphanumeric() {
                 self.cursor += c.len_utf8();
-            } else if c.is_ascii_punctuation() {
+            } else {
                 self.cursor += c.len_utf8();
                 requires_cleanup = true;
-            } else {
-                break;
             }
         }
 
@@ -45,11 +44,9 @@ impl<'a> Lexer<'a> {
             let slice = &self.input[start..self.cursor];
 
             if requires_cleanup {
-                // Clean up the word and allocate it in the arena
                 let cleaned: String = slice.chars().filter(|c| c.is_alphanumeric() || *c == '\'').collect();
                 Some(Cow::Owned(cleaned))
             } else {
-                // Borrow the slice directly
                 Some(Cow::Borrowed(slice))
             }
         } else {
