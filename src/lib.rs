@@ -1,3 +1,3 @@
 pub mod computations;
-pub mod lexer;
+pub mod crawler;
 pub mod arena;

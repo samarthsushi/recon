@@ -1,11 +1,11 @@
 use std::borrow::Cow;
 
-pub struct Lexer<'a> {
+pub struct Crawler<'a> {
     input: &'a str,
     cursor: usize,  
 }
 
-impl<'a> Lexer<'a> {
+impl<'a> Crawler<'a> {
     pub fn new(input: &'a str) -> Self {
         Self { input, cursor: 0 }
     }

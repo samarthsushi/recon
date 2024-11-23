@@ -1,9 +1,11 @@
 use std::{
-    collections::HashMap, fs, io::{self, Read},
+    collections::HashMap, 
+    fs, 
+    io::{self, Read, Write},
     borrow::Cow
 };
 use recon::computations::{compute_tf, compute_idf, compute_tf_idf};
-use recon::lexer::Lexer;
+use recon::crawler::Crawler;
 use recon::arena::Arena;
 
 type TermFreqMap<'a> = HashMap<Cow<'a, str>, usize>;
@@ -24,6 +26,26 @@ fn _load_inverted_index(file_path: &str) -> io::Result<DocumentMap<'static>> {
 }
 
 fn main() -> io::Result<()> {
+    loop {
+        print!("recon>");
+        io::stdout().flush().unwrap();
+
+        let mut input = String::new();
+        io::stdin()
+            .read_line(&mut input)
+            .expect("failed to read input");
+
+        let input = input.trim();
+
+        match input {
+            "query" => {},
+            "save_index" => {},
+            "load_index" => {},
+            "exit" => std::process::exit(1),
+            _ => println!("kys"),
+        }
+    }
+
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
         eprintln!("usage: {} \"<query>\"", args[0]);
@@ -51,7 +73,7 @@ fn main() -> io::Result<()> {
                 std::mem::transmute::<&str, &'static str>(reference)
             };
 
-            let mut lexer = Lexer::new(file_content);
+            let mut lexer = Crawler::new(file_content);
             let mut freq: TermFreqMap = HashMap::new();
 
             while let Some(word) = lexer.next_token() {
