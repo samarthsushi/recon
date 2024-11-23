@@ -1,14 +1,16 @@
 use std::collections::HashMap;
+use std::borrow::Cow;
 
-type TermFreqMap = HashMap<String, usize>; 
+type TermFreqMap<'a> = HashMap<Cow<'a, str>, usize>;
+type DocumentMap<'a> = HashMap<String, TermFreqMap<'a>>;
 
-pub fn compute_tf(doc: &HashMap<String, usize>, query: &str) -> f64 {
+pub fn compute_tf(doc: &TermFreqMap, query: &str) -> f64 {
     let total_words: usize = doc.values().sum();
     let query_count = *doc.get(query).unwrap_or(&0); 
     query_count as f64 / total_words as f64 
 }
 
-pub fn compute_idf(documents: &HashMap<String, TermFreqMap>, query: &str) -> f64 {
+pub fn compute_idf(documents: &DocumentMap, query: &str) -> f64 {
     let doc_count = documents.len() as f64;
     let containing_docs = documents
         .values()

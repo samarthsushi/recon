@@ -1,14 +1,25 @@
 use std::{
-    collections::HashMap, fs, io::{self, Read}, process::exit
+    collections::HashMap, fs, io::{self, Read},
+    borrow::Cow
 };
 use recon::computations::{compute_tf, compute_idf, compute_tf_idf};
 use recon::lexer::Lexer;
+use recon::arena::Arena;
 
-type TermFreqMap = HashMap<String, usize>; 
-type DocumentMap = HashMap<String, TermFreqMap>;
+type TermFreqMap<'a> = HashMap<Cow<'a, str>, usize>;
+type DocumentMap<'a> = HashMap<String, TermFreqMap<'a>>;
 
-fn build_document_map_from_dir_plaintext(current_dir: &str) -> io::Result<DocumentMap> {
-    let mut documents: DocumentMap = HashMap::new();
+fn main() -> io::Result<()> {
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() < 2 {
+        eprintln!("usage: {} <query>", args[0]);
+        return Ok(());
+    }
+
+    let mut arena = Arena::new();
+    let query = args[1].to_lowercase();
+    let current_dir = r"data\blonde_plaintext";
+    let mut inverted_index: DocumentMap = HashMap::new();
 
     for entry in fs::read_dir(current_dir)? {
         let entry = entry?;
@@ -19,36 +30,25 @@ fn build_document_map_from_dir_plaintext(current_dir: &str) -> io::Result<Docume
             let mut file = fs::File::open(&path)?;
             file.read_to_string(&mut file_content)?;
 
-            let file_content = file_content.to_lowercase();
+            let file_content: &'static str = unsafe {
+                let content = file_content.to_lowercase();
+                let reference = arena.alloc(content);
+                std::mem::transmute::<&str, &'static str>(reference)
+            };
 
-            let mut freq = HashMap::new();
-            let mut lexer = Lexer::new(&file_content);
+            let mut lexer = Lexer::new(file_content);
+            let mut freq: TermFreqMap = HashMap::new();
 
             while let Some(word) = lexer.next_token() {
                 *freq.entry(word).or_insert(0) += 1;
             }
-            documents.insert(
+
+            inverted_index.insert(
                 path.file_name().unwrap().to_string_lossy().to_string(),
                 freq,
             );
         }
     }
-    Ok(documents)
-}
-
-fn main() -> io::Result<()> {
-    let args: Vec<String> = std::env::args().collect();
-    if args.len() < 2 {
-        eprintln!("usage: {} <query>", args[0]);
-        return Ok(());
-    }
-
-    let query = args[1].to_lowercase();
-    let current_dir = r"data\blonde_plaintext";
-    let inverted_index = build_document_map_from_dir_plaintext(current_dir).unwrap_or_else(|e|{
-        eprintln!("{e}");
-        exit(1);
-    });
     // println!("{:#?}", documents); // uncomment to debug what the lexer outputs
 
     let mut scores = Vec::new();
