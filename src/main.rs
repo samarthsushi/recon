@@ -30,6 +30,7 @@ fn main() -> io::Result<()> {
             let mut file = fs::File::open(&path)?;
             file.read_to_string(&mut file_content)?;
 
+            // reason for unsafe: String is moved into arena so file_content is owned by arena, which has a static lifetime
             let file_content: &'static str = unsafe {
                 let content = file_content.to_lowercase();
                 let reference = arena.alloc(content);
