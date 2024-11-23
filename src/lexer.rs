@@ -44,7 +44,7 @@ impl<'a> Lexer<'a> {
             let slice = &self.input[start..self.cursor];
 
             if requires_cleanup {
-                let cleaned: String = slice.chars().filter(|c| c.is_alphanumeric() || *c == '\'').collect();
+                let cleaned: String = slice.chars().filter(|c| c.is_alphanumeric()).collect();
                 Some(Cow::Owned(cleaned))
             } else {
                 Some(Cow::Borrowed(slice))

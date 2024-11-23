@@ -16,7 +16,7 @@ fn save_inverted_index(file_path: &str, inverted_index: &DocumentMap) -> io::Res
     Ok(())
 }
 
-fn load_inverted_index(file_path: &str) -> io::Result<DocumentMap<'static>> {
+fn _load_inverted_index(file_path: &str) -> io::Result<DocumentMap<'static>> {
     let content = fs::read_to_string(file_path)?;
     let deserialized: DocumentMap<'static> = serde_json::from_str(&content)
         .expect("failed to deserialize the inverted index");
@@ -31,7 +31,7 @@ fn main() -> io::Result<()> {
     }
 
     let mut arena = Arena::new();
-    let query = args[1].to_lowercase().chars().filter(|c| c.is_alphanumeric() || *c == '\'').collect::<String>(); // suite of pre processing functions for now
+    let query = args[1].to_lowercase().chars().filter(|c| c.is_alphanumeric()).collect::<String>(); // suite of pre processing functions for now
     let current_dir = r"data\blonde_plaintext";
     let mut inverted_index: DocumentMap = HashMap::new();
 
