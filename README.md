@@ -50,7 +50,6 @@ build_fi
 ```
 
 #### `query` or `?`:
-<br>
 keywords to search in the fi (currently supports only single query)
 <br>
 <b>usage:</b> 
