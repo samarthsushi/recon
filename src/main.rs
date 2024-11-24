@@ -1,15 +1,8 @@
 use std::{
-    env, fs, io::{self, Write}, path::PathBuf,
+    env, io::{self, Write}, path::PathBuf,
 };
-use dotenv::from_path;
 use recon::inverted_index::InvertedIndex;
 use recon::arena::Arena;
-
-fn get_binary_dir_env_path() -> PathBuf {
-    let binary_dir = env::current_exe().expect("failed to get current exe path");
-    let binary_dir = binary_dir.parent().expect("failed to get binary directory");
-    binary_dir.join(".env")
-}
 
 fn get_binary_dir_path() ->  PathBuf {
     env::current_exe()
@@ -19,11 +12,17 @@ fn get_binary_dir_path() ->  PathBuf {
         .to_path_buf()
 }
 
+fn display_results(results: Vec<(String, f64)>) {
+    let max_width = results.iter().map(|(name, _)| name.len()).max().unwrap_or(0) + 4;
+
+    for (file_name, score) in results {
+        println!("{:<max_width$} : {:.6}", file_name, score, max_width = max_width);
+    }
+}
+
 fn command_loop(
     arena: &mut Arena, 
-    _inverted_index: &mut InvertedIndex, 
-    mut _ii_load_path: String, 
-    mut _ii_save_path: String
+    _inverted_index: &mut InvertedIndex,
 ) -> io::Result<()>{
     loop {
         print!("recon>");
@@ -39,33 +38,28 @@ fn command_loop(
         let command = unsafe { tokens.next().unwrap_unchecked() };
 
         match command {
-            "set_save_path" => {
-                if let Some(path) = tokens.next() {
-                    _ii_save_path = path.to_string();
-                    println!("II_SAVE_PATH changed to: {}", _ii_save_path);
+            "load_ii" | "l" => {
+                if let Some(filename)  = tokens.next() {
+                    let binary_dir = get_binary_dir_path();
+                    let load_path = binary_dir.join(filename);
+                    _inverted_index.load(load_path)?;
                 } else {
-                    println!("missing path");
+                    println!("missing filename")
                 }
-            }
-            "set_load_path" => {
-                if let Some(path) = tokens.next() {
-                    _ii_load_path = path.to_string();
-                    println!("II_LOAD_PATH changed to: {}", _ii_load_path);
-                } else {
-                    println!("missing path");
-                }
-            }
-            "load_ii" => {
-                let binary_dir = get_binary_dir_path();
-                let load_path = binary_dir.join(&_ii_load_path);
-                _inverted_index.load(load_path)?;
             },
-            "build_ii" => {
+            "build_ii" | "b" => {
                 arena.clear();
                 let current_dir = env::current_dir().expect("failed to get current working directory");
                 _inverted_index.build(current_dir, arena)?;
-            }
-            "query" => {
+            },
+            "save_ii" | "s"=> {
+                if let Some(filename) = tokens.next() {
+                    let binary_dir = get_binary_dir_path();
+                    let save_path = binary_dir.join(filename);
+                    _inverted_index.save(save_path)?;
+                }
+            },
+            "query" | "?" => {
                 if let Some(query) = tokens.next() {
                     if _inverted_index.ii.is_empty() {
                         println!("load or build an inverted index first");
@@ -77,33 +71,21 @@ fn command_loop(
                         println!("no results found");
                         continue;
                     }
-                    for (doc_name, score) in scores { println!("{}: {:.6}", doc_name, score) };
+                    display_results(scores);
 
                 } else {
                     println!("missing query");
                 }
-            },
-            "save_ii" => {
-                let binary_dir = get_binary_dir_path();
-                let save_path = binary_dir.join(&_ii_save_path);
-                _inverted_index.save(save_path)?;
             }
-            "exit" => std::process::exit(0),
+            "exit" | "e" => std::process::exit(0),
             _ => println!("kys"),
         }
     }
 }
 
 fn main() -> io::Result<()> {
-    let env_path = get_binary_dir_env_path();
-    from_path(&env_path).unwrap_or_else(|_| {
-        let default_paths = "II_SAVE_PATH=./ii.json\nII_LOAD_PATH=./ii.json\n";
-        fs::write(&env_path, default_paths).expect("failed to write default .env");
-    });
     let mut arena = Arena::new();
     let mut _inverted_index = InvertedIndex::new();
-    let mut _ii_save_path = env::var("II_SAVE_PATH").unwrap();
-    let mut _ii_load_path = env::var("II_LOAD_PATH").unwrap();
-    command_loop(&mut arena, &mut _inverted_index, _ii_load_path, _ii_save_path)?;
+    command_loop(&mut arena, &mut _inverted_index)?;
     Ok(())
 }
