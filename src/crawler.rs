@@ -10,6 +10,13 @@ impl<'a> Crawler<'a> {
         Self { input, cursor: 0 }
     }
 
+    pub fn len(&self) -> usize {
+        self.input
+            .split_whitespace()
+            .filter(|word| !word.is_empty())
+            .count()
+    }
+
     fn skip_whitespace(&mut self) {
         while let Some(c) = self.peek_char() {
             if c.is_whitespace() {
