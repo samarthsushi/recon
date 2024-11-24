@@ -20,6 +20,31 @@ fn display_results(results: Vec<(String, f64)>) {
     }
 }
 
+fn print_manual() {
+    println!("\
+`load_ii` or `l`:
+loads inverted index (a json file) from the directory where the binary lies
+usage: `load_ii <filename>`
+
+`save_ii` or `s`:
+saves inverted index (a json file) to the directory where the binary lies
+usage: `save_ii <filename>`
+
+`build_ii` or `b`:
+builds inverted index from a corpus, which has to be the current working directory
+usage: `build_ii`
+
+`query` or `?`:
+keywords to search in the inverted index (currently supports only single query)
+usage: `query <query>`
+
+`exit` or `e`:
+exits the program
+
+`help` or `h`:
+prints out a manual")
+}
+
 fn command_loop(
     arena: &mut Arena, 
     _inverted_index: &mut InvertedIndex,
@@ -76,7 +101,8 @@ fn command_loop(
                 } else {
                     println!("missing query");
                 }
-            }
+            },
+            "help" | "h" => print_manual(),
             "exit" | "e" => std::process::exit(0),
             _ => println!("kys"),
         }
