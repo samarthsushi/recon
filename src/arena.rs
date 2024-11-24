@@ -12,4 +12,8 @@ impl Arena {
         // reason for unsafe: we just pushed a value before this so last() will return something
         unsafe { self.data.last().unwrap_unchecked().as_str() }
     }
+
+    pub fn clear(&mut self) {
+        self.data.clear();
+    }
 }

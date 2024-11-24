@@ -1,13 +1,9 @@
 use std::{
-    borrow::Cow, collections::HashMap, env, fs, io::{self, Read, Write}, path::PathBuf
+    env, fs, io::{self, Write}, path::PathBuf,
 };
-use dotenv::dotenv;
-use recon::computations::{compute_tf, compute_idf, compute_tf_idf};
-use recon::crawler::Crawler;
+use dotenv::from_path;
+use recon::inverted_index::InvertedIndex;
 use recon::arena::Arena;
-
-type TermFreqMap<'a> = HashMap<Cow<'a, str>, usize>;
-type DocumentMap<'a> = HashMap<String, TermFreqMap<'a>>;
 
 fn get_binary_dir_env_path() -> PathBuf {
     let binary_dir = env::current_exe().expect("failed to get current exe path");
@@ -23,31 +19,12 @@ fn get_binary_dir_path() ->  PathBuf {
         .to_path_buf()
 }
 
-fn save_inverted_index(file_path: &str, inverted_index: &DocumentMap) -> io::Result<()> {
-    let serialized = serde_json::to_string(inverted_index)
-        .expect("failed to serialize the inverted index");
-    fs::write(file_path, serialized)?;
-    Ok(())
-}
-
-fn load_inverted_index(file_path: &str) -> io::Result<DocumentMap<'static>> {
-    let content = fs::read_to_string(file_path)?;
-    let deserialized: DocumentMap<'static> = serde_json::from_str(&content)
-        .expect("failed to deserialize the inverted index");
-    Ok(deserialized)
-}
-
-fn main() -> io::Result<()> {
-    let env_path = get_binary_dir_env_path();
-    dotenv().unwrap_or_else(|_| {
-        let default_paths = "II_SAVE_PATH=./ii.json\nII_LOAD_PATH=./ii.json\n";
-        fs::write(&env_path, default_paths).expect("failed to write default .env");
-        env_path.clone()
-    });
-    
-    let mut inverted_index: DocumentMap = HashMap::new();
-    let mut _ii_save_path = unsafe { env::var("II_SAVE_PATH").unwrap_unchecked() };
-    let mut _ii_load_path = unsafe { env::var("II_LOAD_PATH").unwrap_unchecked() };
+fn command_loop(
+    arena: &mut Arena, 
+    _inverted_index: &mut InvertedIndex, 
+    mut _ii_load_path: String, 
+    mut _ii_save_path: String
+) -> io::Result<()>{
     loop {
         print!("recon>");
         io::stdout().flush().unwrap();
@@ -78,89 +55,55 @@ fn main() -> io::Result<()> {
                     println!("missing path");
                 }
             }
-            "build" => {
+            "load_ii" => {
                 let binary_dir = get_binary_dir_path();
                 let load_path = binary_dir.join(&_ii_load_path);
-                match load_inverted_index(load_path.to_str().unwrap()) {
-                    Ok(ii) => {
-                        inverted_index = ii;
-                        println!("loaded {}", load_path);
+                _inverted_index.load(load_path)?;
+            },
+            "build_ii" => {
+                arena.clear();
+                let current_dir = env::current_dir().expect("failed to get current working directory");
+                _inverted_index.build(current_dir, arena)?;
+            }
+            "query" => {
+                if let Some(query) = tokens.next() {
+                    if _inverted_index.ii.is_empty() {
+                        println!("load or build an inverted index first");
+                        continue;
                     }
-                    Err(e) => {
-                        println!("failed to load inverted index: {}", e);
+                    let query = query.to_lowercase().chars().filter(|c| c.is_alphanumeric()).collect::<String>();
+                    let scores = _inverted_index.recon(query);
+                    if scores.is_empty() {
+                        println!("no results found");
+                        continue;
                     }
+                    for (doc_name, score) in scores { println!("{}: {:.6}", doc_name, score) };
+
+                } else {
+                    println!("missing query");
                 }
             },
-            "query" => {},
-            "save_index" => {},
-            "load_index" => {},
-            "exit" => std::process::exit(1),
+            "save_ii" => {
+                let binary_dir = get_binary_dir_path();
+                let save_path = binary_dir.join(&_ii_save_path);
+                _inverted_index.save(save_path)?;
+            }
+            "exit" => std::process::exit(0),
             _ => println!("kys"),
         }
     }
+}
 
-    let args: Vec<String> = std::env::args().collect();
-    if args.len() < 2 {
-        eprintln!("usage: {} \"<query>\"", args[0]);
-        return Ok(());
-    }
-
+fn main() -> io::Result<()> {
+    let env_path = get_binary_dir_env_path();
+    from_path(&env_path).unwrap_or_else(|_| {
+        let default_paths = "II_SAVE_PATH=./ii.json\nII_LOAD_PATH=./ii.json\n";
+        fs::write(&env_path, default_paths).expect("failed to write default .env");
+    });
     let mut arena = Arena::new();
-    let query = args[1].to_lowercase().chars().filter(|c| c.is_alphanumeric()).collect::<String>(); // suite of pre processing functions for now
-    let current_dir = r"data\blonde_plaintext";
-
-    for entry in fs::read_dir(current_dir)? {
-        let entry = entry?;
-        let path = entry.path();
-
-        if path.extension().map_or(false, |ext| ext == "txt") {
-            let mut file_content = String::new();
-            let mut file = fs::File::open(&path)?;
-            file.read_to_string(&mut file_content)?;
-
-            // reason for unsafe: String is moved into arena so file_content is owned by arena, which has a static lifetime
-            let file_content: &'static str = unsafe {
-                let content = file_content.to_lowercase();
-                let reference = arena.alloc(content);
-                std::mem::transmute::<&str, &'static str>(reference)
-            };
-
-            let mut lexer = Crawler::new(file_content);
-            let mut freq: TermFreqMap = HashMap::new();
-
-            while let Some(word) = lexer.next_token() {
-                *freq.entry(word).or_insert(0) += 1;
-            }
-
-            inverted_index.insert(
-                path.file_name().unwrap().to_string_lossy().to_string(),
-                freq,
-            );
-        }
-    }
-    // println!("{:#?}", inverted_index); // uncomment to debug what the lexer outputs
-
-    let mut scores = Vec::new();
-    let idf = compute_idf(&inverted_index, &query);
-    println!("idf of {query}: {:.6}\n", idf);
-
-    for (doc_name, term_freq_map) in &inverted_index {
-        let tf = compute_tf(term_freq_map, &query); 
-        let tf_idf = compute_tf_idf(tf, idf); 
-        // println!("{doc_name}:\ntf:{:.6}\ttf*idf: {:.6}", tf ,tf_idf);
-        if tf_idf > 0.0 {
-            scores.push((doc_name.clone(), tf_idf));
-        }
-    }
-
-    scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-
-    println!("reconned:");
-    for (doc_name, score) in scores {
-        println!("{}: {:.6}", doc_name, score);
-    }
-
-    save_inverted_index("inverted_index.json", &inverted_index)?;
-
+    let mut _inverted_index = InvertedIndex::new();
+    let mut _ii_save_path = env::var("II_SAVE_PATH").unwrap();
+    let mut _ii_load_path = env::var("II_LOAD_PATH").unwrap();
+    command_loop(&mut arena, &mut _inverted_index, _ii_load_path, _ii_save_path)?;
     Ok(())
 }
