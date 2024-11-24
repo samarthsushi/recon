@@ -1,7 +1,7 @@
 use std::{
     env, io::{self, Write}, path::PathBuf,
 };
-use recon::inverted_index::InvertedIndex;
+use recon::forward_index::ForwardIndex;
 use recon::arena::Arena;
 
 fn get_binary_dir_path() ->  PathBuf {
@@ -22,20 +22,20 @@ fn display_results(results: Vec<(String, f64)>) {
 
 fn print_manual() {
     println!("\
-`load_ii` or `l`:
-loads inverted index (a json file) from the directory where the binary lies
-usage: `load_ii <filename>`
+`load_fi` or `l`:
+loads forward index (a json file) from the directory where the binary lies
+usage: `load_fi <filename>`
 
-`save_ii` or `s`:
-saves inverted index (a json file) to the directory where the binary lies
-usage: `save_ii <filename>`
+`save_fi` or `s`:
+saves forward index (a json file) to the directory where the binary lies
+usage: `save_fi <filename>`
 
-`build_ii` or `b`:
-builds inverted index from a corpus, which has to be the current working directory
-usage: `build_ii`
+`build_fi` or `b`:
+builds forward index from a corpus, which has to be the current working directory
+usage: `build_fi`
 
 `query` or `?`:
-keywords to search in the inverted index (currently supports only single query)
+keywords to search in the forward index (currently supports only single query)
 usage: `query <query>`
 
 `exit` or `e`:
@@ -47,7 +47,7 @@ prints out a manual")
 
 fn command_loop(
     arena: &mut Arena, 
-    _inverted_index: &mut InvertedIndex,
+    _forward_index: &mut ForwardIndex,
 ) -> io::Result<()>{
     loop {
         print!("recon>");
@@ -63,35 +63,35 @@ fn command_loop(
         let command = unsafe { tokens.next().unwrap_unchecked() };
 
         match command {
-            "load_ii" | "l" => {
+            "load_fi" | "l" => {
                 if let Some(filename)  = tokens.next() {
                     let binary_dir = get_binary_dir_path();
                     let load_path = binary_dir.join(filename);
-                    _inverted_index.load(load_path)?;
+                    _forward_index.load(load_path)?;
                 } else {
                     println!("missing filename")
                 }
             },
-            "build_ii" | "b" => {
+            "build_fi" | "b" => {
                 arena.clear();
                 let current_dir = env::current_dir().expect("failed to get current working directory");
-                _inverted_index.build(current_dir, arena)?;
+                _forward_index.build(current_dir, arena)?;
             },
-            "save_ii" | "s"=> {
+            "save_fi" | "s"=> {
                 if let Some(filename) = tokens.next() {
                     let binary_dir = get_binary_dir_path();
                     let save_path = binary_dir.join(filename);
-                    _inverted_index.save(save_path)?;
+                    _forward_index.save(save_path)?;
                 }
             },
             "query" | "?" => {
                 if let Some(query) = tokens.next() {
-                    if _inverted_index.ii.is_empty() {
-                        println!("load or build an inverted index first");
+                    if _forward_index.fi.is_empty() {
+                        println!("load or build an forward index first");
                         continue;
                     }
                     let query = query.to_lowercase().chars().filter(|c| c.is_alphanumeric()).collect::<String>();
-                    let scores = _inverted_index.recon(query);
+                    let scores = _forward_index.recon(query);
                     if scores.is_empty() {
                         println!("no results found");
                         continue;
@@ -111,7 +111,7 @@ fn command_loop(
 
 fn main() -> io::Result<()> {
     let mut arena = Arena::new();
-    let mut _inverted_index = InvertedIndex::new();
-    command_loop(&mut arena, &mut _inverted_index)?;
+    let mut _forward_index = ForwardIndex::new();
+    command_loop(&mut arena, &mut _forward_index)?;
     Ok(())
 }

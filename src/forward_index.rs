@@ -8,13 +8,13 @@ type TermFreqMap<'a> = HashMap<std::borrow::Cow<'a, str>, usize>;
 type DocumentMap<'a> = HashMap<String, TermFreqMap<'a>>;
 
 #[derive(Debug)]
-pub struct InvertedIndex<'a> {
-    pub ii: DocumentMap<'a>
+pub struct ForwardIndex<'a> {
+    pub fi: DocumentMap<'a>
 }
 
-impl<'a> InvertedIndex<'a> {
+impl<'a> ForwardIndex<'a> {
     pub fn new() -> Self {
-        Self { ii: DocumentMap::new() }
+        Self { fi: DocumentMap::new() }
     }
 
     pub fn build(&mut self, current_dir: std::path::PathBuf, arena: &mut Arena) -> std::io::Result<()> {
@@ -41,7 +41,7 @@ impl<'a> InvertedIndex<'a> {
                     *freq.entry(word).or_insert(0) += 1;
                 }
     
-                self.ii.insert(
+                self.fi.insert(
                     path.file_name().unwrap().to_string_lossy().to_string(),
                     freq,
                 );
@@ -52,9 +52,9 @@ impl<'a> InvertedIndex<'a> {
 
     pub fn recon(&self, query: String) -> Vec<(String, f64)> {
         let mut scores = Vec::new();
-        let idf = compute_idf(&self.ii, &query);
+        let idf = compute_idf(&self.fi, &query);
 
-        for (doc_name, term_freq_map) in &self.ii {
+        for (doc_name, term_freq_map) in &self.fi {
             let tf = compute_tf(term_freq_map, &query); 
             let tf_idf = compute_tf_idf(tf, idf); 
             if tf_idf > 0.0 {
@@ -70,12 +70,12 @@ impl<'a> InvertedIndex<'a> {
         let content = std::fs::read_to_string(file_path)?;
         let deserialized: DocumentMap<'static> = serde_json::from_str(&content)
             .expect("failed to deserialize the inverted index");
-        self.ii = deserialized;
+        self.fi = deserialized;
         Ok(())
     }
 
     pub fn save(&self, file_path: std::path::PathBuf) -> std::io::Result<()>{
-        let serialized = serde_json::to_string(&self.ii).expect("failed to serialize the inverted index");
+        let serialized = serde_json::to_string(&self.fi).expect("failed to serialize the inverted index");
         std::fs::write(file_path, serialized)?;
         Ok(())
     }
