@@ -3,7 +3,7 @@ ref:
 <br>
 https://en.wikipedia.org/wiki/Tf%E2%80%93idf 
 <br>
-https://en.wikipedia.org/wiki/Search_engine_indexing#The_forward_index
+https://en.wikipedia.org/wiki/Inverted_index
 
 ## terminology:
 <b>`tf(t,d)`:</b> a term `t`'s frequency in document `d` divided by total number of terms in that document
