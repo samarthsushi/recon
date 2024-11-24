@@ -21,34 +21,41 @@ run any queries using `?` or save the fi using `save_fi`
 if you want to use a previously saved fi, use `load_fi`
 
 ### commands:
-1. `load_fi` or `l`:
-<br>
+#### `load_fi` or `l`:
 loads fi (a json file) from the directory where the binary lies
 <br>
-usage: `load_fi <filename>`
+<b>usage:</b> 
+```
+load_fi <filename>
+```
 
-2. `save_fi` or `s`:
-<br>
+#### `save_fi` or `s`:
 saves fi (a json file) to the directory where the binary lies
 <br>
-usage: `save_fi <filename>`
+<b>usage:</b>
+``` 
+save_fi <filename>
+```
 
-3. `build_fi` or `b`:
-<br>
+#### `build_fi` or `b`:
 builds fi from a corpus, which has to be the current working directory
 <br>
-usage: `build_fi`
+<b>usage:</b>
+``` 
+build_fi
+```
 
-4. `query` or `?`:
+#### `query` or `?`:
 <br>
 keywords to search in the fi (currently supports only single query)
 <br>
-usage: `query <query>`
+<b>usage:</b> 
+```
+query <query>
+```
 
-5. `exit` or `e`:
-<br>
+#### `exit` or `e`:
 exits the program
 
-6. `help` or `h`:
-<br>
+#### `help` or `h`:
 prints out a manual
