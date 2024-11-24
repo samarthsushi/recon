@@ -1,5 +1,9 @@
 # tf*idf based plain-text search engine
-ref: https://en.wikipedia.org/wiki/Tf%E2%80%93idf
+ref: 
+<br>
+https://en.wikipedia.org/wiki/Tf%E2%80%93idf 
+<br>
+https://en.wikipedia.org/wiki/Search_engine_indexing#The_forward_index
 
 ## terminology:
 <b>`tf(t,d)`:</b> a term `t`'s frequency in document `d` divided by total number of terms in that document
@@ -9,7 +13,7 @@ ref: https://en.wikipedia.org/wiki/Tf%E2%80%93idf
 <b>`tf*idf`:</b> `tf` multiplied by `idf`
 
 ## how to use:
-> forward index = fi
+> fi = forward index
 
 
 after building an executable, go to the directory where your corpus lies and run the executable
