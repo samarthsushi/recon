@@ -1,15 +1,27 @@
 use std::{
-    collections::HashMap, 
-    fs, 
-    io::{self, Read, Write},
-    borrow::Cow
+    borrow::Cow, collections::HashMap, env, fs, io::{self, Read, Write}, path::PathBuf
 };
+use dotenv::dotenv;
 use recon::computations::{compute_tf, compute_idf, compute_tf_idf};
 use recon::crawler::Crawler;
 use recon::arena::Arena;
 
 type TermFreqMap<'a> = HashMap<Cow<'a, str>, usize>;
 type DocumentMap<'a> = HashMap<String, TermFreqMap<'a>>;
+
+fn get_binary_dir_env_path() -> PathBuf {
+    let binary_dir = env::current_exe().expect("failed to get current exe path");
+    let binary_dir = binary_dir.parent().expect("failed to get binary directory");
+    binary_dir.join(".env")
+}
+
+fn get_binary_dir_path() ->  PathBuf {
+    env::current_exe()
+        .expect("failed to get current exe path")
+        .parent()
+        .expect("failed to get binary directory")
+        .to_path_buf()
+}
 
 fn save_inverted_index(file_path: &str, inverted_index: &DocumentMap) -> io::Result<()> {
     let serialized = serde_json::to_string(inverted_index)
@@ -18,7 +30,7 @@ fn save_inverted_index(file_path: &str, inverted_index: &DocumentMap) -> io::Res
     Ok(())
 }
 
-fn _load_inverted_index(file_path: &str) -> io::Result<DocumentMap<'static>> {
+fn load_inverted_index(file_path: &str) -> io::Result<DocumentMap<'static>> {
     let content = fs::read_to_string(file_path)?;
     let deserialized: DocumentMap<'static> = serde_json::from_str(&content)
         .expect("failed to deserialize the inverted index");
@@ -26,6 +38,16 @@ fn _load_inverted_index(file_path: &str) -> io::Result<DocumentMap<'static>> {
 }
 
 fn main() -> io::Result<()> {
+    let env_path = get_binary_dir_env_path();
+    dotenv().unwrap_or_else(|_| {
+        let default_paths = "II_SAVE_PATH=./ii.json\nII_LOAD_PATH=./ii.json\n";
+        fs::write(&env_path, default_paths).expect("failed to write default .env");
+        env_path.clone()
+    });
+    
+    let mut inverted_index: DocumentMap = HashMap::new();
+    let mut _ii_save_path = unsafe { env::var("II_SAVE_PATH").unwrap_unchecked() };
+    let mut _ii_load_path = unsafe { env::var("II_LOAD_PATH").unwrap_unchecked() };
     loop {
         print!("recon>");
         io::stdout().flush().unwrap();
@@ -34,10 +56,41 @@ fn main() -> io::Result<()> {
         io::stdin()
             .read_line(&mut input)
             .expect("failed to read input");
-
         let input = input.trim();
+        if input.is_empty() { continue };
+        let mut tokens = input.split_whitespace();
+        let command = unsafe { tokens.next().unwrap_unchecked() };
 
-        match input {
+        match command {
+            "set_save_path" => {
+                if let Some(path) = tokens.next() {
+                    _ii_save_path = path.to_string();
+                    println!("II_SAVE_PATH changed to: {}", _ii_save_path);
+                } else {
+                    println!("missing path");
+                }
+            }
+            "set_load_path" => {
+                if let Some(path) = tokens.next() {
+                    _ii_load_path = path.to_string();
+                    println!("II_LOAD_PATH changed to: {}", _ii_load_path);
+                } else {
+                    println!("missing path");
+                }
+            }
+            "build" => {
+                let binary_dir = get_binary_dir_path();
+                let load_path = binary_dir.join(&_ii_load_path);
+                match load_inverted_index(load_path.to_str().unwrap()) {
+                    Ok(ii) => {
+                        inverted_index = ii;
+                        println!("loaded {}", load_path);
+                    }
+                    Err(e) => {
+                        println!("failed to load inverted index: {}", e);
+                    }
+                }
+            },
             "query" => {},
             "save_index" => {},
             "load_index" => {},
@@ -55,7 +108,6 @@ fn main() -> io::Result<()> {
     let mut arena = Arena::new();
     let query = args[1].to_lowercase().chars().filter(|c| c.is_alphanumeric()).collect::<String>(); // suite of pre processing functions for now
     let current_dir = r"data\blonde_plaintext";
-    let mut inverted_index: DocumentMap = HashMap::new();
 
     for entry in fs::read_dir(current_dir)? {
         let entry = entry?;
