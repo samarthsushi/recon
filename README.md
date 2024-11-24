@@ -13,44 +13,44 @@ https://en.wikipedia.org/wiki/Search_engine_indexing#The_forward_index
 <b>`tf*idf`:</b> `tf` multiplied by `idf`
 
 ## how to use:
-> fi = forward index
+> ii = inverted index
 
 
 after building an executable, go to the directory where your corpus lies and run the executable
 <br>
-build a fi from the corpus using the `build_fi` command
+build a ii from the corpus using the `build_ii` command
 <br>
-run any queries using `?` or save the fi using `save_fi`
+run any queries using `?` or save the ii using `save_ii`
 <br>
-if you want to use a previously saved fi, use `load_fi`
+if you want to use a previously saved ii, use `load_ii`
 
 ### commands:
-#### `load_fi` or `l`:
-loads fi (a json file) from the directory where the binary lies
+#### `load_ii` or `l`:
+loads ii (a json file) from the directory where the binary lies
 <br>
 <b>usage:</b> 
 ```
-load_fi <filename>
+load_ii <ilename>
 ```
 
-#### `save_fi` or `s`:
-saves fi (a json file) to the directory where the binary lies
+#### `save_ii` or `s`:
+saves ii (a json file) to the directory where the binary lies
 <br>
 <b>usage:</b>
 ``` 
-save_fi <filename>
+save_ii <filename>
 ```
 
-#### `build_fi` or `b`:
-builds fi from a corpus, which has to be the current working directory
+#### `build_ii` or `b`:
+builds ii from a corpus, which has to be the current working directory
 <br>
 <b>usage:</b>
 ``` 
-build_fi
+build_ii
 ```
 
 #### `query` or `?`:
-keywords to search in the fi (currently supports only single query)
+keywords to search in the ii (currently supports only single query)
 <br>
 <b>usage:</b> 
 ```
