@@ -73,7 +73,6 @@ impl<'a> InvertedIndex<'a> {
         }
         let mut sorted_scores: Vec<_> = scores.into_iter().collect();
         sorted_scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-        println!("{:?}", sorted_scores);
         sorted_scores
             .into_iter()
             .map(|(doc_id, score)| (self.doc_names[doc_id].clone(), score))
@@ -95,6 +94,11 @@ impl<'a> InvertedIndex<'a> {
             .expect("failed to serialize the inverted index");
         std::fs::write(file_path, serialized)?;
         Ok(())
+    }
+
+    pub fn prune(&mut self, threshold: f32) {
+        let threshold_num = (self.doc_names.len() as f32 * threshold).round() as usize;
+        self.ii.retain(|_, doc_freq_map| doc_freq_map.len() < threshold_num);
     }
 
     #[inline]

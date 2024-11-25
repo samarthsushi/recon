@@ -73,6 +73,10 @@ fn command_loop(
                 }
             },
             "build_ii" | "b" => {
+                if let Some(token) = tokens.next() {
+                    println!("unexpected token {token}: build_ii takes 0 arguments");
+                    continue;
+                }
                 arena.clear();
                 let current_dir = env::current_dir().expect("failed to get current working directory");
                 _inverted_index.build(current_dir, arena)?;
@@ -84,6 +88,26 @@ fn command_loop(
                     _inverted_index.save(save_path)?;
                 }
             },
+            "prune_ii" | "p" => {
+                if let Some(threshold) = tokens.next() {
+                    let threshold_float = match threshold.parse::<f32>() {
+                        Ok(value) => value,
+                        Err(e) => {
+                            println!("{e}");
+                            continue; 
+                        }
+                    };
+
+                    if threshold_float < 0.0 || threshold_float > 1.0 {
+                        println!("threshold must be between 0 and 1");
+                        continue;
+                    }
+
+                    _inverted_index.prune(threshold_float);
+                } else {
+                    println!("missing threshold");
+                }
+            }
             "query" | "?" => {
                 if _inverted_index.ii.is_empty() {
                     println!("load or build an inverted index first");
