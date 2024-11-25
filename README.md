@@ -25,6 +25,7 @@ run any queries using `?` or save the ii using `save_ii`
 if you want to use a previously saved ii, use `load_ii`
 
 ### commands:
+> in the filename, make sure to append the .json extension to it
 #### `load_ii` or `l`:
 loads ii (a json file) from the directory where the binary lies
 <br>
@@ -54,7 +55,7 @@ keywords to search in the ii (currently supports only single query)
 <br>
 <b>usage:</b> 
 ```
-query <query>
+query <queries separated by space>
 ```
 
 #### `exit` or `e`:

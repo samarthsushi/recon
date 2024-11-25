@@ -23,19 +23,19 @@ fn display_results(results: Vec<(String, f64)>) {
 fn print_manual() {
     println!("\
 `load_ii` or `l`:
-loads forward index (a json file) from the directory where the binary lies
+loads inverted index (a json file) from the directory where the binary lies
 usage: `load_ii <filename>`
 
 `save_ii` or `s`:
-saves forward index (a json file) to the directory where the binary lies
+saves inverted index (a json file) to the directory where the binary lies
 usage: `save_ii <filename>`
 
 `build_ii` or `b`:
-builds forward index from a corpus, which has to be the current working directory
+builds inverted index from a corpus, which has to be the current working directory
 usage: `build_ii`
 
 `query` or `?`:
-keywords to search in the forward index (currently supports only single query)
+keywords to search in the inverted index (currently supports only single query)
 usage: `query <query>`
 
 `exit` or `e`:
@@ -85,22 +85,25 @@ fn command_loop(
                 }
             },
             "query" | "?" => {
-                if let Some(query) = tokens.next() {
-                    if _inverted_index.ii.is_empty() {
-                        println!("load or build an forward index first");
-                        continue;
-                    }
-                    let query = query.to_lowercase().chars().filter(|c| c.is_alphanumeric()).collect::<String>();
-                    let scores = _inverted_index.recon(query);
-                    if scores.is_empty() {
-                        println!("no results found");
-                        continue;
-                    }
-                    display_results(scores);
-
-                } else {
-                    println!("missing query");
+                if _inverted_index.ii.is_empty() {
+                    println!("load or build an inverted index first");
+                    continue;
                 }
+                let mut queries = Vec::new();
+                while let Some(query) = tokens.next() {
+                    let query = query.to_lowercase().chars().filter(|c| c.is_alphanumeric()).collect::<String>();
+                    queries.push(query);
+                }
+                if queries.is_empty() {
+                    println!("missing query/ies");
+                    continue;
+                }
+                let scores = _inverted_index.recon(queries);
+                if scores.is_empty() {
+                    println!("no results found");
+                    continue;
+                }
+                display_results(scores);
             },
             "help" | "h" => print_manual(),
             "exit" | "e" => std::process::exit(0),

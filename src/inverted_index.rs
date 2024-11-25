@@ -54,22 +54,23 @@ impl<'a> InvertedIndex<'a> {
         Ok(())
     }
 
-    pub fn recon(&self, query: String) -> Vec<(String, f64)> {
+    pub fn recon(&self, queries: Vec<String>) -> Vec<(String, f64)> {
         let mut scores: HashMap<usize, f64> = HashMap::new();
 
-        if let Some(doc_freq_map) = self.ii.get(query.as_str()) {
-            for (&doc_id, &term_freq) in doc_freq_map {
-                let tf = Self::compute_tf(term_freq, self.doc_lengths[doc_id]);
-                let idf = Self::compute_idf(self.doc_lengths.len(), doc_freq_map.len());
-                let tf_idf = Self::compute_tf_idf(tf, idf);
-                println!("{doc_id}::= tf({term_freq},{})={tf}, idf({},{})={idf}", self.doc_lengths[doc_id], self.doc_lengths.len(), doc_freq_map.len());
-                scores
-                    .entry(doc_id)
-                    .and_modify(|score| *score += tf_idf)
-                    .or_insert(tf_idf);
+        for query in queries {
+            if let Some(doc_freq_map) = self.ii.get(query.as_str()) {
+                for (&doc_id, &term_freq) in doc_freq_map {
+                    let tf = Self::compute_tf(term_freq, self.doc_lengths[doc_id]);
+                    let idf = Self::compute_idf(self.doc_lengths.len(), doc_freq_map.len());
+                    let tf_idf = Self::compute_tf_idf(tf, idf);
+                    println!("{doc_id}::= tf({term_freq},{})={tf}, idf({},{})={idf}", self.doc_lengths[doc_id], self.doc_lengths.len(), doc_freq_map.len());
+                    scores
+                        .entry(doc_id)
+                        .and_modify(|score| *score += tf_idf)
+                        .or_insert(tf_idf);
+                }
             }
         }
-
         let mut sorted_scores: Vec<_> = scores.into_iter().collect();
         sorted_scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
         println!("{:?}", sorted_scores);
