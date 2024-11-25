@@ -50,6 +50,14 @@ builds ii from a corpus, which has to be the current working directory
 build_ii
 ```
 
+#### `prune_ii` or `p`:
+prunes terms from ii that appear in more or equal documents compared to `total documents * threshold`
+<br>
+<b>usage:</b>
+``` 
+prune_ii <threshold>
+```
+
 #### `query` or `?`:
 keywords to search in the ii (currently supports only single query)
 <br>
