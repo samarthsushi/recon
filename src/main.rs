@@ -1,8 +1,23 @@
 use std::{
     env, io::{self, Write}, path::PathBuf,
 };
+use lopdf::Document;
 use recon::inverted_index::InvertedIndex;
 use recon::arena::Arena;
+
+fn pdf2text<P: AsRef<std::path::Path>>(pdf_path: P) -> Result<String, String> {
+    let doc = Document::load(&pdf_path).map_err(|e| format!("Failed to load PDF: {}", e))?;
+    let mut extracted_text = String::new();
+
+    for (page_num, _page_obj) in doc.get_pages() {
+        match doc.extract_text(&[page_num]) {
+            Ok(text) => extracted_text.push_str(&text),
+            Err(e) => eprintln!("Failed to extract text from page {}: {}", page_num, e),
+        }
+    }
+
+    Ok(extracted_text)
+}
 
 fn get_binary_dir_path() ->  PathBuf {
     env::current_exe()
@@ -129,6 +144,12 @@ fn command_loop(
                 }
                 display_results(scores);
             },
+            "pdf2text" => {
+                if let Some(filename) = tokens.next() {
+                    let extracted_text = pdf2text(filename).unwrap();
+                    println!("{extracted_text}");
+                }
+            }
             "help" | "h" => print_manual(),
             "exit" | "e" => std::process::exit(0),
             _ => println!("kys"),
