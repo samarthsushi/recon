@@ -1,5 +1,4 @@
 use crate::arena::Arena;
-use crate::crawler::Crawler;
 use std::collections::HashMap;
 use std::io::Read;
 
@@ -24,22 +23,30 @@ impl<'a> InvertedIndex<'a> {
             let entry = entry?;
             let path = entry.path();
     
-            if path.extension().map_or(false, |ext| ext == "txt") {
+            if let Some(ext) = path.extension().and_then(|ext| ext.to_str()) {
                 let doc_name = path.file_name().unwrap().to_string_lossy().to_string();
                 let doc_id = self.doc_names.len();
                 self.doc_names.push(doc_name);
-                let mut file_content = String::new();
-                let mut file = std::fs::File::open(&path)?;
-                file.read_to_string(&mut file_content)?;
     
-                // reason for unsafe: String is moved into arena so file_content is owned by arena, which has a static lifetime
+                let mut file_content = String::new();
+                match ext {
+                    "txt" => {
+                        let mut file = std::fs::File::open(&path)?;
+                        file.read_to_string(&mut file_content)?;
+                    }
+                    "pdf" => {
+                        file_content = crate::utils::pdf2text(&path).unwrap();
+                    }
+                    _ => continue,
+                }
+
                 let file_content: &'static str = unsafe {
                     let content = file_content.to_lowercase();
                     let reference = arena.alloc(content);
                     std::mem::transmute::<&str, &'static str>(reference)
                 };
-    
-                let mut lexer = Crawler::new(file_content);
+
+                let mut lexer = crate::crawler::Crawler::new(file_content);
                 self.doc_lengths.push(lexer.len());
                 while let Some(word) = lexer.next_token() {
                     self.ii

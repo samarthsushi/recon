@@ -1,39 +1,7 @@
-use std::{
-    env, io::{self, Write}, path::PathBuf,
-};
-use lopdf::Document;
+use std::io::{self, Write};
 use recon::inverted_index::InvertedIndex;
 use recon::arena::Arena;
-
-fn pdf2text<P: AsRef<std::path::Path>>(pdf_path: P) -> Result<String, String> {
-    let doc = Document::load(&pdf_path).map_err(|e| format!("Failed to load PDF: {}", e))?;
-    let mut extracted_text = String::new();
-
-    for (page_num, _page_obj) in doc.get_pages() {
-        match doc.extract_text(&[page_num]) {
-            Ok(text) => extracted_text.push_str(&text),
-            Err(e) => eprintln!("Failed to extract text from page {}: {}", page_num, e),
-        }
-    }
-
-    Ok(extracted_text)
-}
-
-fn get_binary_dir_path() ->  PathBuf {
-    env::current_exe()
-        .expect("failed to get current exe path")
-        .parent()
-        .expect("failed to get binary directory")
-        .to_path_buf()
-}
-
-fn display_results(results: Vec<(String, f64)>) {
-    let max_width = results.iter().map(|(name, _)| name.len()).max().unwrap_or(0) + 4;
-
-    for (file_name, score) in results {
-        println!("{:<max_width$} : {:.6}", file_name, score, max_width = max_width);
-    }
-}
+use recon::utils::{get_binary_dir_path, display_results};
 
 fn print_manual() {
     println!("\
@@ -93,7 +61,7 @@ fn command_loop(
                     continue;
                 }
                 arena.clear();
-                let current_dir = env::current_dir().expect("failed to get current working directory");
+                let current_dir = std::env::current_dir().expect("failed to get current working directory");
                 _inverted_index.build(current_dir, arena)?;
             },
             "save_ii" | "s"=> {
@@ -144,12 +112,6 @@ fn command_loop(
                 }
                 display_results(scores);
             },
-            "pdf2text" => {
-                if let Some(filename) = tokens.next() {
-                    let extracted_text = pdf2text(filename).unwrap();
-                    println!("{extracted_text}");
-                }
-            }
             "help" | "h" => print_manual(),
             "exit" | "e" => std::process::exit(0),
             _ => println!("kys"),
