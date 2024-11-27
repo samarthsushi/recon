@@ -66,9 +66,9 @@ impl<'a> InvertedIndex<'a> {
 
         for query in queries {
             if let Some(doc_freq_map) = self.ii.get(query.as_str()) {
+                let idf = Self::compute_idf(self.doc_lengths.len(), doc_freq_map.len());
                 for (&doc_id, &term_freq) in doc_freq_map {
                     let tf = Self::compute_tf(term_freq, self.doc_lengths[doc_id]);
-                    let idf = Self::compute_idf(self.doc_lengths.len(), doc_freq_map.len());
                     let tf_idf = Self::compute_tf_idf(tf, idf);
                     println!("{doc_id}::= tf({term_freq},{})={tf}, idf({},{})={idf}", self.doc_lengths[doc_id], self.doc_lengths.len(), doc_freq_map.len());
                     scores
