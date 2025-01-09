@@ -16,8 +16,8 @@ pub fn display_results(results: Vec<(String, f64)>) {
     }
 }
 
-pub fn pdf2text<P: AsRef<std::path::Path>>(pdf_path: P) -> Result<String, String> {
-    let doc = Document::load(&pdf_path).map_err(|e| format!("Failed to load PDF: {}", e))?;
+pub fn pdf2string<P: AsRef<std::path::Path>>(path: P) -> Result<String, String> {
+    let doc = Document::load(&path).map_err(|e| format!("Failed to load PDF: {}", e))?;
     let mut extracted_text = String::new();
 
     for (page_num, _page_obj) in doc.get_pages() {
@@ -28,4 +28,37 @@ pub fn pdf2text<P: AsRef<std::path::Path>>(pdf_path: P) -> Result<String, String
     }
 
     Ok(extracted_text)
+}
+
+pub fn html2string<P: AsRef<std::path::Path>>(path: P) -> Result<String, String> {
+    let html = std::fs::read_to_string(path).map_err(|e| format!("Failed to load HTML: {}", e))?;
+    let mut text = String::new();
+    let mut in_tag = false;
+    let mut ignore_content = false;
+    let mut tag_name = String::new();
+
+    for c in html.chars() {
+        match c {
+            '<' => {
+                in_tag = true;
+                tag_name.clear();
+            }
+            '>' => {
+                in_tag = false;
+                if tag_name == "/script" || tag_name == "/style" {
+                    ignore_content = false;
+                }
+            }
+            _ if in_tag => {
+                tag_name.push(c);
+                if tag_name == "script" || tag_name == "style" {
+                    ignore_content = true;
+                }
+            }
+            _ if !in_tag && !ignore_content => text.push(c),
+            _ => (),
+        }
+    }
+
+    Ok(text.trim().to_string())
 }
