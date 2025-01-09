@@ -35,7 +35,7 @@ impl<'a> InvertedIndex<'a> {
                         file.read_to_string(&mut file_content)?;
                     }
                     "pdf" => { file_content = crate::utils::pdf2string(&path).unwrap(); }
-                    "html" => { file_content = crate::utils::html2string(&path).unwrap(); }
+                    "html" | "xml" => { file_content = crate::utils::markup2string(&path).unwrap(); }
                     _ => continue,
                 }
 

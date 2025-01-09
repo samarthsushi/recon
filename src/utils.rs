@@ -30,14 +30,14 @@ pub fn pdf2string<P: AsRef<std::path::Path>>(path: P) -> Result<String, String> 
     Ok(extracted_text)
 }
 
-pub fn html2string<P: AsRef<std::path::Path>>(path: P) -> Result<String, String> {
-    let html = std::fs::read_to_string(path).map_err(|e| format!("Failed to load HTML: {}", e))?;
+pub fn markup2string<P: AsRef<std::path::Path>>(path: P) -> Result<String, String> {
+    let markup = std::fs::read_to_string(path).map_err(|e| format!("Failed to load markup: {}", e))?;
     let mut text = String::new();
     let mut in_tag = false;
     let mut ignore_content = false;
     let mut tag_name = String::new();
 
-    for c in html.chars() {
+    for c in markup.chars() {
         match c {
             '<' => {
                 in_tag = true;
